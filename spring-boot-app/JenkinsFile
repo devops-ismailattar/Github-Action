@@ -1,0 +1,77 @@
+pipeline{
+    agent any
+    environment {
+        SONAR_URL = "http://65.1.1.110:9000"
+        IMAGE_TAG = "${env.BUILD_NUMBER}"
+    }
+
+    stages{
+        stage("build the application") {
+            steps{
+                sh """
+                cd java-maven-sonar-argocd-helm-k8s/spring-boot-app
+                mvn clean package
+                """
+            }
+        }
+
+        stage("static code analysis") {
+            steps{
+                withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
+                    sh """
+                    cd java-maven-sonar-argocd-helm-k8s/spring-boot-app
+                    mvn sonar:sonar \
+                      -Dsonar.login=$SONAR_AUTH_TOKEN \
+                      -Dsonar.host.url=$SONAR_URL
+                    """
+                }
+            }
+        }
+
+        stage("docker build image") {
+            steps{
+                    sh """
+                    cd java-maven-sonar-argocd-helm-k8s/spring-boot-app
+                    docker build -t attarismail/springboot:$IMAGE_TAG .
+                    """
+                
+            }
+        }
+
+        stage("docker push image") {
+            steps{
+                withCredentials([string(credentialsId: 'docker-cred', variable: 'dockerhub_pwd')]) {
+                    sh """
+                    docker login -u attarismail -p $dockerhub_pwd
+                    docker push attarismail/springboot:$IMAGE_TAG
+                    """
+                }
+            }
+        }
+
+        stage("update deployement repo") {
+            steps{
+                sh "sed -i 's|image: attarismail/springboot:.*|image: attarismail/springboot:$IMAGE_TAG|' java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml"
+            }
+        }
+
+        stage("push changes to github") {
+            environment {
+                GIT_REPO_NAME = "Jenkins--cicd-pipeline"
+                GIT_USER_NAME = "devops-ismailattar"
+            }
+            steps{
+                withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
+                    sh """
+                    git config user.email "ismail.xyz@gmail.com"
+                    git config user.name "ismail attar"
+                    git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
+                    git commit -m "Update deployment image to version $IMAGE_TAG"
+                    git push https://$GITHUB_TOKEN@github.com/$GIT_USER_NAME/$GIT_REPO_NAME HEAD:main
+                    git push https://$GITHUB_TOKEN@github.com/$GIT_USER_NAME/$GIT_REPO_NAME HEAD:argocd --force
+                    """
+                }
+            }
+        }
+    }
+}
