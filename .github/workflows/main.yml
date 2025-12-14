@@ -60,6 +60,7 @@ jobs:
     needs: JDK-install
     runs-on: ubuntu-latest
     steps:
+  
       - name: checkout
         uses: actions/checkout@v6
       - name: download Build arthifact
@@ -81,10 +82,25 @@ jobs:
       - name: push docker image to dockerhub
         uses: docker/build-push-action@v6
         with:
-          context: ./spring-boot-app
+          context: ./spring-boot-app/Dockerfile
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/springboot:${{ github.sha }} 
         
+  update-the-deployment-files-and-commit-back:
+    needs: build-and-push-image-to-dockerhub
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update deployment image and push to repo
+        run: |
+          cd spring-boot-app
+          sed -i "s|image:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/springboot:${{ github.sha }}|" deployment.yml    
+          git config user.name "Ismail-Attar"
+          git config user.email "ismailattar@gmail.com"
+          git add deployment.yml
+          git commit -m "updated deployment file with image tag"
+          git push origin HEAD:main
+          git push origin HEAD:argocd
+
 
 
 
