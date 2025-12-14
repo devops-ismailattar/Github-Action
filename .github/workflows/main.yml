@@ -92,7 +92,7 @@ jobs:
     steps:
       - name: Update deployment image and push to repo
         run: |
-          cd spring-boot-app
+          cd spring-boot-app-manifests
           sed -i "s|image:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/springboot:${{ github.sha }}|" deployment.yml    
           git config user.name "Ismail-Attar"
           git config user.email "ismailattar@gmail.com"
