@@ -56,8 +56,18 @@ jobs:
           name: my-artifact
           path: spring-boot-app/target/*.jar
 
+  build-and-push-image-to-dockerhub:
+    needs: JDK-install
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v6
+      - name: download Build arthifact
+        uses: actions/download-artifact@v7.0.0
+        with:
+          name: my-artifact
+          path: spring-boot-app/target/
 
-#
 
 
 
