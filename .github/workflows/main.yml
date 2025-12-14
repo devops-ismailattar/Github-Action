@@ -107,7 +107,7 @@ jobs:
           git add deployment.yml
           git commit -m "Update image to ${{ github.sha }}" || echo "No changes to commit"
           git push origin main
-          git push origin HEAD:argocd
+          git push origin HEAD:argocd --force
 
 
 
