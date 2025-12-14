@@ -82,7 +82,7 @@ jobs:
       - name: push docker image to dockerhub
         uses: docker/build-push-action@v6
         with:
-          context: ./spring-boot-app/Dockerfile
+          context: ./spring-boot-app
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/springboot:${{ github.sha }} 
         
